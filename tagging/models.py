@@ -223,7 +223,8 @@ class TagManager(models.Manager):
         %(min_count_sql)s
         ORDER BY %(tag)s.name ASC""" % {
             'tag': qn(self.model._meta.db_table),
-            'count_sql': counts and not counts_all and ', COUNT(%s.object_id)' % tagged_item_table or '',
+            'count_sql': ', COUNT(%s.object_id)' % tagged_item_table if (counts
+                and not counts_all) else '',
             'tagged_item': tagged_item_table,
             'content_type_id': ContentType.objects.get_for_model(model).pk,
             'tag_id_placeholders': ','.join(['%s'] * tag_count),

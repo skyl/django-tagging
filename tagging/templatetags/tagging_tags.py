@@ -226,10 +226,11 @@ def do_tagged_objects(parser, token):
         raise TemplateSyntaxError(_("fourth argument to %s tag must be 'as'") % bits[0])
     return TaggedObjectsNode(bits[1], bits[3], bits[5])
 
-@register.inclusion_tag('tags/cloud_for_tags.html')
+@register.inclusion_tag('tagging/cloud_for_tags.html')
 def cloud(tags, steps=4, distribution=LOGARITHMIC):
-    tags = calculate_cloud(tags, steps, distribution)
-    return {'tags':tags}
+    '''Takes a queryset of Tags with counts and renders the clound html'''
+    tags = calculate_cloud(list(tags), steps, distribution)
+    return {'tags':tags }
 
 
 register.tag('tags_for_model', do_tags_for_model)
