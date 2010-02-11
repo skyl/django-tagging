@@ -186,7 +186,8 @@ class TagManager(models.Manager):
             extra_criteria = ''
         return self._get_usage(queryset.model, counts, min_count, counts_all, extra_joins, extra_criteria, params)
 
-    def related_for_model(self, tags, model, counts=False, min_count=None):
+    def related_for_model(self, tags, model, counts=False, min_count=None,
+            counts_all=False):
         """
         Obtain a list of tags related to a given list of tags - that
         is, other tags used by items which have all the given tags.
@@ -222,7 +223,7 @@ class TagManager(models.Manager):
         %(min_count_sql)s
         ORDER BY %(tag)s.name ASC""" % {
             'tag': qn(self.model._meta.db_table),
-            'count_sql': counts and ', COUNT(%s.object_id)' % tagged_item_table or '',
+            'count_sql': counts and not counts_all and ', COUNT(%s.object_id)' % tagged_item_table or '',
             'tagged_item': tagged_item_table,
             'content_type_id': ContentType.objects.get_for_model(model).pk,
             'tag_id_placeholders': ','.join(['%s'] * tag_count),
@@ -240,7 +241,10 @@ class TagManager(models.Manager):
         for row in cursor.fetchall():
             tag = self.model(*row[:2])
             if counts is True:
-                tag.count = row[2]
+                if counts_all:
+                    tag.count = tag.items.count()
+                else:
+                    tag.count = row[2]
             related.append(tag)
         return related
 

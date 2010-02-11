@@ -4,6 +4,7 @@ from django.utils.translation import ugettext as _
 
 from tagging.models import Tag, TaggedItem
 from tagging.utils import LINEAR, LOGARITHMIC
+from tagging.utils import calculate_cloud
 
 register = Library()
 
@@ -224,6 +225,12 @@ def do_tagged_objects(parser, token):
     if bits[4] != 'as':
         raise TemplateSyntaxError(_("fourth argument to %s tag must be 'as'") % bits[0])
     return TaggedObjectsNode(bits[1], bits[3], bits[5])
+
+@register.inclusion_tag('tags/cloud_for_tags.html')
+def cloud(tags, steps=4, distribution=LOGARITHMIC):
+    tags = calculate_cloud(tags, steps, distribution)
+    return {'tags':tags}
+
 
 register.tag('tags_for_model', do_tags_for_model)
 register.tag('tag_cloud_for_model', do_tag_cloud_for_model)
