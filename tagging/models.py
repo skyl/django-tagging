@@ -75,7 +75,8 @@ class TagManager(models.Manager):
         return self.filter(items__content_type__pk=ctype.pk,
                            items__object_id=obj.pk)
 
-    def _get_usage(self, model, counts=False, min_count=None, extra_joins=None, extra_criteria=None, params=None):
+    def _get_usage(self, model, counts=False, min_count=None, counts_all=False, extra_joins=None,
+            extra_criteria=None, params=None):
         """
         Perform the custom SQL query for ``usage_for_model`` and
         ``usage_for_queryset``.
@@ -99,7 +100,7 @@ class TagManager(models.Manager):
         %%s
         ORDER BY %(tag)s.name ASC""" % {
             'tag': qn(self.model._meta.db_table),
-            'count_sql': counts and (', COUNT(%s)' % model_pk) or '',
+            'count_sql': counts and not counts_all and (', COUNT(%s)' % model_pk) or '',
             'tagged_item': qn(TaggedItem._meta.db_table),
             'model': model_table,
             'model_pk': model_pk,
@@ -117,11 +118,15 @@ class TagManager(models.Manager):
         for row in cursor.fetchall():
             t = self.model(*row[:2])
             if counts:
-                t.count = row[2]
+                if counts_all:
+                    t.count = t.items.count()
+                else:
+                    t.count = row[2]
             tags.append(t)
         return tags
 
-    def usage_for_model(self, model, counts=False, min_count=None, filters=None):
+    def usage_for_model(self, model, counts=False, min_count=None,
+            filters=None, counts_all=False):
         """
         Obtain a list of tags associated with instances of the given
         Model class.
@@ -144,11 +149,12 @@ class TagManager(models.Manager):
         queryset = model._default_manager.filter()
         for f in filters.items():
             queryset.query.add_filter(f)
-        usage = self.usage_for_queryset(queryset, counts, min_count)
+        usage = self.usage_for_queryset(queryset, counts, min_count, counts_all)
 
         return usage
 
-    def usage_for_queryset(self, queryset, counts=False, min_count=None):
+    def usage_for_queryset(self, queryset, counts=False, min_count=None,
+            counts_all=False):
         """
         Obtain a list of tags associated with instances of a model
         contained in the given queryset.
@@ -178,7 +184,7 @@ class TagManager(models.Manager):
             extra_criteria = 'AND %s' % where
         else:
             extra_criteria = ''
-        return self._get_usage(queryset.model, counts, min_count, extra_joins, extra_criteria, params)
+        return self._get_usage(queryset.model, counts, min_count, counts_all, extra_joins, extra_criteria, params)
 
     def related_for_model(self, tags, model, counts=False, min_count=None):
         """
@@ -239,7 +245,7 @@ class TagManager(models.Manager):
         return related
 
     def cloud_for_model(self, model, steps=4, distribution=LOGARITHMIC,
-                        filters=None, min_count=None):
+                        filters=None, min_count=None, counts_all=False):
         """
         Obtain a list of tags associated with instances of the given
         Model, giving each tag a ``count`` attribute indicating how
@@ -264,8 +270,9 @@ class TagManager(models.Manager):
         for the ``min_count`` argument.
         """
         tags = list(self.usage_for_model(model, counts=True, filters=filters,
-                                         min_count=min_count))
+                        min_count=min_count, counts_all=counts_all))
         return calculate_cloud(tags, steps, distribution)
+
 
 class TaggedItemManager(models.Manager):
     """

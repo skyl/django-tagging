@@ -462,7 +462,7 @@ class TestTagUsageForModel(TestCase):
             perch = Perch.objects.create(size=perch_size, smelly=perch_smelly)
             parrot = Parrot.objects.create(state=state, perch=perch)
             Tag.objects.update_tags(parrot, tags)
-    
+
     def test_tag_usage_for_model(self):
         tag_usage = Tag.objects.usage_for_model(Parrot, counts=True)
         relevant_attribute_list = [(tag.name, tag.count) for tag in tag_usage]
@@ -526,6 +526,15 @@ class TestTagUsageForModel(TestCase):
         tag_usage = Tag.objects.usage_for_model(Parrot, filters=dict(perch__size__gt=99))
         relevant_attribute_list = [(tag.name, hasattr(tag, 'counts')) for tag in tag_usage]
         self.assertEquals(len(relevant_attribute_list), 0)
+
+    def test_tag_usage_for_model_count_all(self):
+        tag_usage = Tag.objects.usage_for_model(Parrot,
+                filters={'state':'late'}, counts=True, counts_all=True)
+        relevant_attribute_list = [(tag.name, tag.count) for tag in tag_usage]
+        self.assertEquals(len(relevant_attribute_list), 2)
+        self.failUnless((u'bar', 3) in relevant_attribute_list)
+        self.failUnless((u'ter', 3) in relevant_attribute_list)
+
 
 class TestTagsRelatedForModel(TestCase):
     def setUp(self):
@@ -787,6 +796,14 @@ class TestTagUsageForQuerySet(TestCase):
             perch = Perch.objects.create(size=perch_size, smelly=perch_smelly)
             parrot = Parrot.objects.create(state=state, perch=perch)
             Tag.objects.update_tags(parrot, tags)
+
+    def test_tag_usage_for_queryset_counts_all(self):
+        tag_usage = Tag.objects.usage_for_queryset(Parrot.objects.filter(state='no more'),
+                counts=True, counts_all=True)
+        relevant_attribute_list = [(tag.name, tag.count) for tag in tag_usage]
+        self.assertEquals(len(relevant_attribute_list), 2)
+        self.failUnless((u'foo', 2) in relevant_attribute_list)
+        self.failUnless((u'ter', 3) in relevant_attribute_list)
     
     def test_tag_usage_for_queryset(self):
         tag_usage = Tag.objects.usage_for_queryset(Parrot.objects.filter(state='no more'), counts=True)
@@ -918,3 +935,4 @@ class TestTagFieldInForms(TestCase):
             raise e
         else:
             raise self.failureException('a ValidationError exception was supposed to have been raised.')
+
