@@ -476,6 +476,10 @@ class Tag(models.Model):
     def __unicode__(self):
         return self.name
 
+    def url_name(self):
+        import urllib
+        return urllib.quote(self.name)
+
 class TaggedItem(models.Model):
     """
     Holds the relationship between a tag and the item being tagged.
