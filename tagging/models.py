@@ -464,6 +464,12 @@ class TaggedItemManager(models.Manager):
 ##########
 # Models #
 ##########
+from multilingual.translation import Translation
+from multilingual.manager import Manager as TranslationManager
+
+class MultiManager(TagManager, TranslationManager):
+    pass
+
 
 class Tag(models.Model):
     """
@@ -471,10 +477,15 @@ class Tag(models.Model):
     """
     name = models.CharField(_('name'), max_length=50, unique=True, db_index=True)
 
-    objects = TagManager()
+    #objects = TagManager()
+    objects = MultiManager()
+
+    class Translation(Translation):
+        ml = models.TextField(blank=True)
+
 
     class Meta:
-        ordering = ('name',)
+        #ordering = ('name',)
         verbose_name = _('tag')
         verbose_name_plural = _('tags')
 
