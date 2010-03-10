@@ -483,11 +483,17 @@ class Tag(models.Model):
     class Translation(Translation):
         ml = models.TextField(blank=True)
 
-
     class Meta:
         #ordering = ('name',)
         verbose_name = _('tag')
         verbose_name_plural = _('tags')
+
+    def save(self, *args, **kwargs):
+        super(Tag, self).save(*args, **kwargs)
+        from django.conf import settings
+        for c, l in settings.LANGUAGES:
+            if not self.get_ml(c):
+                self.set_ml(self.name, c)
 
     def __unicode__(self):
         return self.name
